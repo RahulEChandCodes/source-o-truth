@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Source-o-Truth | The Single Source of Truth for Builders</title>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Tailwind Config based on Design System -->
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Inter", "sans-serif"],
+              mono: ["monospace"], // Fallback for code
+            },
+            colors: {
+              primary: {
+                50: "#F4F7FF",
+                100: "#E9EFFF",
+                500: "#376BFB", // Default "Clarity Blue"
+                600: "#2F5BDD",
+              },
+              neutral: {
+                50: "#FAFBFC", // App base
+                100: "#F5F6F8", // Backgrounds
+                200: "#E3E4E8", // Inputs
+                300: "#C5C7CB", // Dividers
+                500: "#6E7278", // Borders
+                700: "#3C3F44", // Secondary text
+                900: "#0B0B0D", // Primary text
+              },
+              semantic: {
+                success: "#3BA55D",
+                successBg: "#E8F7ED",
+                warning: "#F5A623",
+                warningBg: "#FFF6E5",
+                error: "#E74646",
+                errorBg: "#FDECEC",
+                info: "#2EA8E6",
+                infoBg: "#E9F8FF",
+              },
+              epic: {
+                data: "#7A5AF8",
+                backend: "#4CB38D",
+                frontend: "#E06374",
+                client: "#F5A85A",
+                qa: "#5BA0F2",
+              },
+            },
+            borderRadius: {
+              sm: "4px",
+              DEFAULT: "8px",
+              lg: "12px",
+            },
+            boxShadow: {
+              calm: "0 1px 3px rgba(0, 0, 0, 0.06)",
+              hover: "0 4px 12px rgba(0, 0, 0, 0.08)",
+            },
+            fontSize: {
+              "display-xl": ["48px", "56px"],
+              "display-l": ["40px", "48px"],
+              h1: ["32px", "40px"],
+              h2: ["24px", "32px"],
+              h3: ["20px", "28px"],
+              "title-m": ["18px", "26px"],
+              "body-l": ["16px", "24px"],
+              "body-m": ["14px", "20px"],
+              "body-s": ["12px", "16px"],
+              "mono-code": ["13px", "1.5"],
+            },
+          },
+        },
+      };
+    </script>
+
+    <style>
+      body {
+        background-color: #fafbfc; /* Neutral 50 */
+        color: #0b0b0d; /* Neutral 900 */
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* Custom Scrollbar for a technical feel */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #fafbfc;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #e3e4e8;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #c5c7cb;
+      }
+
+      .hero-grid {
+        background-image: linear-gradient(#e3e4e8 1px, transparent 1px),
+          linear-gradient(90deg, #e3e4e8 1px, transparent 1px);
+        background-size: 40px 40px;
+        mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), transparent);
+      }
+
+      .glass-card {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(12px);
+        border: 1px solid #e3e4e8;
+      }
+
+      /* Revised Card Stack Styles */
+      .card-stack-container {
+        position: relative;
+        padding-bottom: 10vh; /* Space at bottom to finish scrolling */
+      }
+
+      .stack-card {
+        position: sticky;
+        width: 100%;
+        background: white;
+        border-radius: 24px;
+        box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e3e4e8;
+        overflow: hidden;
+        transform-origin: center top;
+        margin-bottom: 4rem; /* Visual gap when viewing normally */
+        will-change: transform, opacity;
+      }
+
+      /* Responsive offsets for sticky positioning */
+      #card-1 {
+        top: 120px;
+        z-index: 10;
+      }
+      #card-2 {
+        top: 135px;
+        z-index: 20;
+      }
+      #card-3 {
+        top: 150px;
+        z-index: 30;
+      }
+      #card-4 {
+        top: 165px;
+        z-index: 40;
+      }
+
+      @media (max-width: 768px) {
+        #card-1 {
+          top: 100px;
+        }
+        #card-2 {
+          top: 110px;
+        }
+        #card-3 {
+          top: 120px;
+        }
+        #card-4 {
+          top: 130px;
+        }
+        .stack-card {
+          margin-bottom: 2rem;
+        }
+      }
+    </style>
+  </head>
+  <body class="overflow-x-hidden">
+    <!-- Navigation -->
+    <nav
+      class="fixed w-full z-50 bg-white/90 backdrop-blur-sm border-b border-neutral-200"
+    >
+      <div
+        class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between"
+      >
+        <div class="flex items-center gap-2">
+          <div
+            class="w-8 h-8 bg-primary-500 rounded flex items-center justify-center text-white font-bold"
+          >
+            S
+          </div>
+          <span
+            class="font-semibold text-title-m tracking-tight text-neutral-900"
+            >Source-o-Truth</span
+          >
+        </div>
+        <div
+          class="hidden md:flex items-center gap-8 text-body-m font-medium text-neutral-500"
+        >
+          <a href="#problem" class="hover:text-primary-500 transition-colors"
+            >The Problem</a
+          >
+          <a href="#solution" class="hover:text-primary-500 transition-colors"
+            >How it Works</a
+          >
+        </div>
+        <div class="flex items-center gap-4">
+          <a
+            href="https://docs.google.com/forms/d/e/1FAIpQLScQFqyMcGYVew_He1fgxMkZ6WOwlXXluj0wcG24OmP8DsZvWA/viewform?usp=dialog"
+            target="_blank"
+            class="bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded text-body-m font-medium transition-all shadow-calm"
+            >Join the waitlist</a
+          >
+        </div>
+      </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 px-6 overflow-hidden">
+      <div
+        class="absolute inset-0 hero-grid pointer-events-none -z-10 h-full w-full"
+      ></div>
+
+      <div class="max-w-7xl mx-auto text-center relative z-10">
+        <div
+          class="hero-anim opacity-0 translate-y-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-50 border border-primary-100 text-primary-600 text-body-s font-medium mb-6"
+        >
+          <span
+            class="w-2 h-2 rounded-full bg-primary-500 animate-pulse"
+          ></span>
+          Structured for Builders
+        </div>
+
+        <h1
+          class="hero-anim opacity-0 translate-y-4 text-h1 md:text-display-xl font-bold text-neutral-900 tracking-tight mb-6 max-w-4xl mx-auto"
+        >
+          Clarity Above All.<br />
+          <span class="text-neutral-500"
+            >The personalized system for product documentation.</span
+          >
+        </h1>
+
+        <p
+          class="hero-anim opacity-0 translate-y-4 text-body-l md:text-title-m text-neutral-500 max-w-2xl mx-auto mb-10 leading-relaxed"
+        >
+          Generic tools create chaos. Source-o-Truth gives your team the
+          framework to
+          <strong>structure, document, and validate</strong> every step of
+          building - from the first idea to the final commit.
+        </p>
+
+        <div
+          class="hero-anim opacity-0 translate-y-4 flex flex-col sm:flex-row items-center justify-center gap-4"
+        >
+          <a
+            href="https://docs.google.com/forms/d/e/1FAIpQLScQFqyMcGYVew_He1fgxMkZ6WOwlXXluj0wcG24OmP8DsZvWA/viewform?usp=dialog"
+            target="_blank"
+            class="w-full sm:w-auto px-8 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-semibold text-body-l shadow-calm transition-all transform hover:-translate-y-0.5 text-center flex items-center justify-center"
+            >Join the waitlist</a
+          >
+          <a
+            href="#problem"
+            class="w-full sm:w-auto px-8 py-3 bg-white border border-neutral-300 hover:border-neutral-500 text-neutral-700 rounded-lg font-medium text-body-l transition-all inline-block pt-3 text-center"
+            >Why we exist</a
+          >
+        </div>
+      </div>
+
+      <!-- Abstract UI Representation -->
+      <div
+        class="hero-ui opacity-0 max-w-5xl mx-auto mt-20 relative px-4 md:px-0"
+      >
+        <div class="glass-card rounded-lg p-1 shadow-2xl">
+          <div
+            class="bg-white rounded border border-neutral-200 overflow-hidden"
+          >
+            <div
+              class="h-10 bg-neutral-50 border-b border-neutral-200 flex items-center px-4 gap-2"
+            >
+              <div class="w-3 h-3 rounded-full bg-neutral-300"></div>
+              <div class="w-3 h-3 rounded-full bg-neutral-300"></div>
+              <div class="w-3 h-3 rounded-full bg-neutral-300"></div>
+              <div
+                class="ml-4 h-5 w-48 md:w-64 bg-neutral-200 rounded-sm"
+              ></div>
+            </div>
+            <!-- Adjusted grid for mobile -->
+            <div
+              class="p-4 md:p-8 grid grid-cols-1 md:grid-cols-12 gap-8 h-auto md:h-[400px]"
+            >
+              <!-- Sidebar: Hidden on mobile to prevent squishing -->
+              <div
+                class="hidden md:block md:col-span-3 border-r border-neutral-200 pr-4 space-y-4"
+              >
+                <div class="h-4 w-24 bg-neutral-200 rounded"></div>
+                <div class="space-y-2">
+                  <div
+                    class="h-8 w-full bg-primary-50 border-l-4 border-primary-500 rounded-r flex items-center px-3"
+                  >
+                    <div class="h-2 w-16 bg-primary-200 rounded"></div>
+                  </div>
+                  <div class="h-8 w-full flex items-center px-3">
+                    <div class="h-2 w-20 bg-neutral-100 rounded"></div>
+                  </div>
+                  <div class="h-8 w-full flex items-center px-3">
+                    <div class="h-2 w-24 bg-neutral-100 rounded"></div>
+                  </div>
+                </div>
+              </div>
+              <!-- Content: Takes full width on mobile -->
+              <div class="col-span-1 md:col-span-9 space-y-6">
+                <div class="flex justify-between items-center">
+                  <div
+                    class="h-8 w-48 md:w-64 bg-neutral-900 rounded opacity-10"
+                  ></div>
+                  <div
+                    class="h-6 w-24 bg-semantic-successBg text-semantic-success rounded flex items-center justify-center text-xs font-bold"
+                  >
+                    QA APPROVED
+                  </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div
+                    class="p-4 border border-neutral-200 rounded bg-neutral-50"
+                  >
+                    <div class="w-2 h-2 rounded-full bg-epic-data mb-2"></div>
+                    <div class="h-3 w-16 bg-neutral-200 rounded mb-2"></div>
+                    <div
+                      class="h-2 w-full bg-neutral-200 rounded opacity-50"
+                    ></div>
+                  </div>
+                  <div
+                    class="p-4 border border-neutral-200 rounded bg-neutral-50"
+                  >
+                    <div
+                      class="w-2 h-2 rounded-full bg-epic-backend mb-2"
+                    ></div>
+                    <div class="h-3 w-20 bg-neutral-200 rounded mb-2"></div>
+                    <div
+                      class="h-2 w-full bg-neutral-200 rounded opacity-50"
+                    ></div>
+                  </div>
+                  <div
+                    class="p-4 border border-neutral-200 rounded bg-neutral-50"
+                  >
+                    <div
+                      class="w-2 h-2 rounded-full bg-epic-frontend mb-2"
+                    ></div>
+                    <div class="h-3 w-14 bg-neutral-200 rounded mb-2"></div>
+                    <div
+                      class="h-2 w-full bg-neutral-200 rounded opacity-50"
+                    ></div>
+                  </div>
+                </div>
+                <div
+                  class="h-32 md:h-40 bg-neutral-50 rounded border border-neutral-200 border-dashed flex items-center justify-center text-neutral-300 font-mono text-sm"
+                >
+                  // Happy Path Logic Defined
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Problem Section -->
+    <section id="problem" class="py-24 bg-white border-y border-neutral-200">
+      <div class="max-w-7xl mx-auto px-6">
+        <div class="grid md:grid-cols-2 gap-16 items-center">
+          <div>
+            <h2 class="text-h2 text-neutral-900 font-bold mb-4">
+              Documentation dwindles. <br />Timelines slip.
+            </h2>
+            <p class="text-body-l text-neutral-500 mb-8">
+              Without a structured
+              <strong class="text-neutral-900">single source of truth</strong>,
+              communication chunks between multiple channels, and the "why" gets
+              lost in the "how".
+            </p>
+            <ul class="space-y-4">
+              <li class="flex items-start gap-3">
+                <i
+                  data-lucide="x-circle"
+                  class="w-5 h-5 text-semantic-error mt-1"
+                ></i>
+                <span class="text-body-l text-neutral-700"
+                  >Generic tools lack product-specific context.</span
+                >
+              </li>
+              <li class="flex items-start gap-3">
+                <i
+                  data-lucide="x-circle"
+                  class="w-5 h-5 text-semantic-error mt-1"
+                ></i>
+                <span class="text-body-l text-neutral-700"
+                  >Testers guess at happy paths.</span
+                >
+              </li>
+              <li class="flex items-start gap-3">
+                <i
+                  data-lucide="x-circle"
+                  class="w-5 h-5 text-semantic-error mt-1"
+                ></i>
+                <span class="text-body-l text-neutral-700"
+                  >Devs build without seeing the whole picture.</span
+                >
+              </li>
+            </ul>
+          </div>
+          <!-- Updated Problem Visualization -->
+          <!-- Removed 'overflow-hidden' from parent so cards can float outside -->
+          <div
+            class="relative rounded-lg p-8 border border-neutral-200 bg-neutral-100"
+          >
+            <!-- New inner wrapper to clip ONLY the background elements -->
+            <div
+              class="absolute inset-0 rounded-lg overflow-hidden pointer-events-none"
+            >
+              <!-- Background Pattern representing noise/chaos -->
+              <div
+                class="absolute inset-0 opacity-30"
+                style="
+                  background-image: radial-gradient(
+                    #9ca3af 1.5px,
+                    transparent 1.5px
+                  );
+                  background-size: 24px 24px;
+                "
+              ></div>
+
+              <!-- Abstract 'Connection Lines' fading out -->
+              <svg
+                class="absolute inset-0 w-full h-full text-neutral-300"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M40 40 Q 150 150 260 40"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  fill="none"
+                  stroke-dasharray="6 6"
+                  opacity="0.5"
+                />
+                <path
+                  d="M40 260 Q 150 150 260 260"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  fill="none"
+                  stroke-dasharray="6 6"
+                  opacity="0.5"
+                />
+              </svg>
+            </div>
+
+            <!-- Cards are now free to overlap the parent border -->
+            <div
+              class="absolute -top-4 -right-4 bg-white p-4 rounded shadow-hover border border-neutral-200 hidden sm:block z-10 transform rotate-1 transition-transform hover:rotate-0 hover:scale-105 duration-300"
+            >
+              <div class="flex items-center gap-2 mb-1">
+                <div class="w-2 h-2 rounded-full bg-semantic-error"></div>
+                <p class="text-body-s font-semibold text-neutral-900">
+                  Where is the updated API spec?
+                </p>
+              </div>
+              <p class="text-body-s text-neutral-500 pl-4">
+                Sent 2 hrs ago via Slack
+              </p>
+            </div>
+
+            <div
+              class="absolute -bottom-4 -left-4 bg-white p-4 rounded shadow-hover border border-neutral-200 hidden sm:block z-10 transform -rotate-1 transition-transform hover:rotate-0 hover:scale-105 duration-300"
+            >
+              <div class="flex items-center gap-2 mb-1">
+                <div class="w-2 h-2 rounded-full bg-semantic-warning"></div>
+                <p class="text-body-s font-semibold text-neutral-900">
+                  Is this edge case covered?
+                </p>
+              </div>
+              <p class="text-body-s text-neutral-500 pl-4">
+                Commented on Figma
+              </p>
+            </div>
+
+            <div
+              class="flex justify-center items-center h-64 text-neutral-300 relative z-0"
+            >
+              <div class="relative">
+                <i
+                  data-lucide="file-question"
+                  class="w-20 h-20 text-neutral-400"
+                ></i>
+                <div
+                  class="absolute -top-2 -right-2 w-6 h-6 bg-semantic-error rounded-full flex items-center justify-center text-white text-xs font-bold border-2 border-neutral-100"
+                >
+                  ?
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- The Solution / Card Stack Workflow -->
+    <section id="solution" class="bg-neutral-50 relative">
+      <div class="max-w-7xl mx-auto px-6 pt-24 pb-12 text-center">
+        <h2 class="text-h2 md:text-display-l font-bold text-neutral-900 mb-4">
+          From Idea to Execution
+        </h2>
+        <p
+          class="text-body-l md:text-title-m text-neutral-500 max-w-2xl mx-auto"
+        >
+          The granular breakdown that technical teams need. Scroll to see how
+          Source-o-Truth transforms a messy idea into a shipping product.
+        </p>
+      </div>
+
+      <div class="card-stack-container max-w-4xl mx-auto px-6 pb-24">
+        <!-- Card 1: The Idea -->
+        <div
+          class="stack-card z-10 p-6 md:p-12 flex flex-col md:flex-row gap-6 md:gap-8 items-center"
+          id="card-1"
+        >
+          <div class="flex-1 text-left">
+            <div
+              class="inline-flex items-center justify-center w-12 h-12 bg-primary-100 text-primary-600 rounded-full mb-6"
+            >
+              <i data-lucide="lightbulb" class="w-6 h-6"></i>
+            </div>
+            <h3
+              class="text-h1 md:text-display-l font-bold text-neutral-900 mb-2"
+            >
+              1. The Idea
+            </h3>
+            <p class="text-title-m font-semibold text-primary-600 mb-4">
+              What is the problem? How is it solved?
+            </p>
+            <p
+              class="text-body-m md:text-body-l text-neutral-500 leading-relaxed"
+            >
+              At its crux, every product starts here. But ideas are messy.
+              Source-o-Truth provides the rigid framework
+              <strong>you need</strong> to validate the problem before writing
+              code. <strong>You</strong> separate the 'What' from the 'How',
+              ensuring <strong>your team</strong> never builds features nobody
+              wants.
+            </p>
+          </div>
+          <div
+            class="w-full md:w-1/3 bg-neutral-50 rounded-lg h-48 md:h-64 border border-neutral-200 flex items-center justify-center relative overflow-hidden"
+          >
+            <div
+              class="absolute inset-0 bg-[radial-gradient(#C5C7CB_1px,transparent_1px)] [background-size:16px_16px] opacity-30"
+            ></div>
+            <div
+              class="bg-white p-4 rounded shadow-calm border border-neutral-200 text-center"
+            >
+              <span class="block text-body-s text-neutral-400 mb-1"
+                >Problem Statement</span
+              >
+              <span class="block font-bold text-neutral-900">Validated ✅</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: The Scope -->
+        <div
+          class="stack-card z-20 p-6 md:p-12 flex flex-col md:flex-row gap-6 md:gap-8 items-center"
+          id="card-2"
+        >
+          <div class="flex-1 text-left">
+            <div
+              class="inline-flex items-center justify-center w-12 h-12 bg-neutral-100 text-neutral-600 rounded-full mb-6"
+            >
+              <i data-lucide="maximize" class="w-6 h-6"></i>
+            </div>
+            <h3
+              class="text-h1 md:text-display-l font-bold text-neutral-900 mb-2"
+            >
+              2. The Scope
+            </h3>
+            <p class="text-title-m font-semibold text-neutral-500 mb-4">
+              Workable Chunks & Boundaries
+            </p>
+            <p
+              class="text-body-m md:text-body-l text-neutral-500 leading-relaxed"
+            >
+              How is the problem being solved?
+              <strong>You determine</strong> the scope. Break down your massive
+              vision into manageable, workable chunks.
+              <strong>Your documentation</strong> becomes the law here—defining
+              exactly what is <span class="italic">in</span> and what is
+              <span class="italic">out</span> to prevent scope creep before it
+              starts.
+            </p>
+          </div>
+          <div
+            class="w-full md:w-1/3 bg-neutral-900 rounded-lg h-48 md:h-64 border border-neutral-700 flex flex-col p-4 gap-2 justify-center"
+          >
+            <div class="h-2 w-3/4 bg-neutral-700 rounded"></div>
+            <div class="h-2 w-full bg-neutral-700 rounded"></div>
+            <div class="h-2 w-1/2 bg-neutral-700 rounded"></div>
+            <div class="mt-4 flex gap-2">
+              <span
+                class="px-2 py-1 bg-neutral-800 text-neutral-300 text-[10px] rounded border border-neutral-700"
+                >MVP</span
+              >
+              <span
+                class="px-2 py-1 bg-neutral-800 text-neutral-300 text-[10px] rounded border border-neutral-700"
+                >Phase 1</span
+              >
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: Epics & Features -->
+        <div
+          class="stack-card z-30 p-6 md:p-12 flex flex-col md:flex-row gap-6 md:gap-8 items-center"
+          id="card-3"
+        >
+          <div class="flex-1 text-left">
+            <div
+              class="inline-flex items-center justify-center w-12 h-12 bg-semantic-infoBg text-semantic-info rounded-full mb-6"
+            >
+              <i data-lucide="layers" class="w-6 h-6"></i>
+            </div>
+            <h3
+              class="text-h1 md:text-display-l font-bold text-neutral-900 mb-2"
+            >
+              3. Epics & Features
+            </h3>
+            <p class="text-title-m font-semibold text-semantic-info mb-4">
+              The Single Source of Truth
+            </p>
+            <p
+              class="text-body-m md:text-body-l text-neutral-500 leading-relaxed"
+            >
+              This is the core. <strong>You define</strong> the User Roles,
+              Dependencies, and strict Success Criteria. Don't just rely on the
+              happy path, <strong>document</strong> the edge cases and error
+              handling in plain English. This helps testers build their cases
+              and developers their blueprint before a single pixel is rendered.
+            </p>
+          </div>
+          <div
+            class="w-full md:w-1/3 bg-neutral-50 rounded-lg h-auto md:h-64 border border-neutral-200 p-4 space-y-3 relative overflow-hidden"
+          >
+            <div
+              class="flex items-center gap-2 p-2 bg-white border border-neutral-200 rounded shadow-sm"
+            >
+              <i
+                data-lucide="check-circle"
+                class="w-4 h-4 text-semantic-success"
+              ></i>
+              <span class="text-xs font-medium text-neutral-700"
+                >Happy Path</span
+              >
+            </div>
+            <div
+              class="flex items-center gap-2 p-2 bg-white border border-neutral-200 rounded shadow-sm"
+            >
+              <i
+                data-lucide="alert-triangle"
+                class="w-4 h-4 text-semantic-warning"
+              ></i>
+              <span class="text-xs font-medium text-neutral-700"
+                >Edge Case: Offline</span
+              >
+            </div>
+            <div
+              class="flex items-center gap-2 p-2 bg-white border border-neutral-200 rounded shadow-sm"
+            >
+              <i data-lucide="x-circle" class="w-4 h-4 text-semantic-error"></i>
+              <span class="text-xs font-medium text-neutral-700"
+                >Error: 401 Handling</span
+              >
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 4: Execution -->
+        <div
+          class="stack-card z-40 p-6 md:p-12 flex flex-col md:flex-row gap-6 md:gap-8 items-center"
+          id="card-4"
+        >
+          <div class="flex-1 text-left">
+            <div
+              class="inline-flex items-center justify-center w-12 h-12 bg-neutral-900 text-white rounded-full mb-6"
+            >
+              <i data-lucide="code" class="w-6 h-6"></i>
+            </div>
+            <h3
+              class="text-h1 md:text-display-l font-bold text-neutral-900 mb-2"
+            >
+              4. Execution
+            </h3>
+            <p class="text-title-m font-semibold text-neutral-900 mb-4">
+              Data, Backend, Frontend
+            </p>
+            <p
+              class="text-body-m md:text-body-l text-neutral-500 leading-relaxed mb-4"
+            >
+              The technical handoff. <strong>You structure</strong> the Data
+              Models, Backend Logic, and Frontend interactions. Our Interactive
+              Visualizer then brings
+              <strong>your manual documentation</strong> to life, allowing the
+              whole team to understand <strong>your</strong> schema. Delegate
+              with confidence knowing <strong>you've</strong> set the
+              architecture.
+            </p>
+          </div>
+          <!-- Mini Data Visualizer Mockup -->
+          <div
+            class="w-full md:w-1/3 bg-neutral-50 rounded-lg h-64 border border-neutral-200 relative overflow-hidden p-4 flex flex-col"
+          >
+            <!-- Search Bar Mock -->
+            <div
+              class="h-8 w-full bg-white rounded border border-neutral-200 flex items-center px-3 mb-3 shadow-sm"
+            >
+              <div
+                class="w-3 h-3 rounded-full border-2 border-neutral-300"
+              ></div>
+              <div class="ml-2 h-2 w-24 bg-neutral-100 rounded"></div>
+            </div>
+
+            <!-- Cards Grid Mock -->
+            <div class="flex gap-4 relative flex-1">
+              <!-- Card 1: User -->
+              <div
+                class="bg-white rounded-lg border border-neutral-200 shadow-sm w-36 flex-shrink-0 flex flex-col relative z-10 h-fit"
+              >
+                <div class="h-1 w-full bg-[#7A5AF8] rounded-t-lg"></div>
+                <div class="p-3">
+                  <div class="flex items-center gap-2 mb-2">
+                    <div class="p-1 bg-neutral-100 rounded">
+                      <div class="w-2 h-2 bg-neutral-400"></div>
+                    </div>
+                    <span class="font-bold text-xs text-neutral-900">User</span>
+                  </div>
+                  <div class="space-y-1.5">
+                    <div
+                      class="flex justify-between items-center bg-neutral-50 p-1 rounded"
+                    >
+                      <div class="flex gap-1 items-center">
+                        <div class="w-2 h-2 text-yellow-500">🔑</div>
+                        <span class="text-[8px] font-mono text-neutral-600"
+                          >id</span
+                        >
+                      </div>
+                      <span
+                        class="text-[6px] bg-purple-50 text-purple-700 px-1 py-0.5 rounded uppercase font-bold"
+                        >UUID</span
+                      >
+                    </div>
+                    <div class="flex justify-between items-center p-1">
+                      <span class="text-[8px] font-mono text-neutral-600"
+                        >email</span
+                      >
+                      <span
+                        class="text-[6px] bg-blue-50 text-blue-700 px-1 py-0.5 rounded uppercase font-bold"
+                        >STR</span
+                      >
+                    </div>
+                  </div>
+                  <div class="mt-2 pt-2 border-t border-neutral-100">
+                    <div class="flex items-center gap-1">
+                      <div class="w-1 h-1 rounded-full bg-[#376BFB]"></div>
+                      <span class="text-[7px] text-neutral-500"
+                        >Has many Projects</span
+                      >
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Card 2: Project -->
+              <div
+                class="bg-white rounded-lg border border-neutral-200 shadow-sm w-36 flex-shrink-0 flex flex-col relative z-10 h-fit mt-8"
+              >
+                <div class="h-1 w-full bg-[#7A5AF8] rounded-t-lg"></div>
+                <div class="p-3">
+                  <div class="flex items-center gap-2 mb-2">
+                    <div class="p-1 bg-neutral-100 rounded">
+                      <div class="w-2 h-2 bg-neutral-400"></div>
+                    </div>
+                    <span class="font-bold text-xs text-neutral-900"
+                      >Project</span
+                    >
+                  </div>
+                  <div class="space-y-1.5">
+                    <div
+                      class="flex justify-between items-center bg-neutral-50 p-1 rounded"
+                    >
+                      <div class="flex gap-1 items-center">
+                        <div class="w-2 h-2 text-yellow-500">🔑</div>
+                        <span class="text-[8px] font-mono text-neutral-600"
+                          >id</span
+                        >
+                      </div>
+                      <span
+                        class="text-[6px] bg-purple-50 text-purple-700 px-1 py-0.5 rounded uppercase font-bold"
+                        >UUID</span
+                      >
+                    </div>
+                    <div class="flex justify-between items-center p-1">
+                      <div class="flex gap-1 items-center">
+                        <div class="w-2 h-2 text-neutral-400">🔗</div>
+                        <span class="text-[8px] font-mono text-neutral-600"
+                          >owner_id</span
+                        >
+                      </div>
+                      <span
+                        class="text-[6px] bg-purple-50 text-purple-700 px-1 py-0.5 rounded uppercase font-bold"
+                        >FK</span
+                      >
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Connection Line Mock -->
+              <svg
+                class="absolute top-0 left-0 w-full h-full pointer-events-none -z-0"
+                style="opacity: 0.4"
+              >
+                <path
+                  d="M 144 80 C 160 80, 160 110, 176 110"
+                  fill="none"
+                  stroke="#376BFB"
+                  stroke-width="2"
+                  stroke-dasharray="4 2"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-24 bg-neutral-900 text-white relative overflow-hidden">
+      <div
+        class="absolute inset-0 opacity-10"
+        style="
+          background-image: radial-gradient(#376bfb 1px, transparent 1px);
+          background-size: 32px 32px;
+        "
+      ></div>
+      <div class="max-w-4xl mx-auto px-6 text-center relative z-10">
+        <h2 class="text-display-l font-bold mb-6">
+          Build with Technical Elegance.
+        </h2>
+        <p class="text-title-m text-neutral-300 mb-10">
+          Stop the generic chaos. Start using the tool built for the way you
+          actually develop software.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a
+            href="https://docs.google.com/forms/d/e/1FAIpQLScQFqyMcGYVew_He1fgxMkZ6WOwlXXluj0wcG24OmP8DsZvWA/viewform?usp=dialog"
+            target="_blank"
+            class="px-8 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded font-semibold text-body-l transition-colors inline-block"
+            >Join the waitlist</a
+          >
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-neutral-200 pt-16 pb-8">
+      <div class="max-w-7xl mx-auto px-6">
+        <div class="flex flex-col items-center text-center mb-12">
+          <div class="flex items-center gap-2 mb-4">
+            <div
+              class="w-6 h-6 bg-neutral-900 rounded flex items-center justify-center text-white text-xs font-bold"
+            >
+              S
+            </div>
+            <span class="font-bold text-lg text-neutral-900"
+              >Source-o-Truth</span
+            >
+          </div>
+          <p class="text-body-s text-neutral-500 max-w-xs">
+            The single source of truth for Product Managers, Developers, and
+            Testers. Bringing clarity to complex builds.
+          </p>
+        </div>
+        <div
+          class="border-t border-neutral-200 pt-8 flex justify-center items-center text-body-s text-neutral-400"
+        >
+          <p>&copy; 2025 Source-o-Truth. All rights reserved.</p>
+        </div>
+      </div>
+    </footer>
+
+    <!-- GSAP Animations -->
+    <script>
+      // Initialize Icons
+      lucide.createIcons();
+
+      // Register ScrollTrigger
+      gsap.registerPlugin(ScrollTrigger);
+
+      // Hero Animation Sequence
+      const tl = gsap.timeline();
+      tl.to(".hero-anim", {
+        y: 0,
+        opacity: 1,
+        duration: 0.8,
+        stagger: 0.2,
+        ease: "power3.out",
+      }).to(
+        ".hero-ui",
+        {
+          opacity: 1,
+          y: -20,
+          duration: 1,
+          ease: "power2.out",
+        },
+        "-=0.4"
+      );
+
+      // CSS Sticky is handling the layout "stacking".
+      // We use GSAP to add depth (scale/opacity) to the cards as they get covered.
+
+      // Loop through cards 1 to 3 (last card doesn't need to scale down)
+      const cards = ["#card-1", "#card-2", "#card-3"];
+
+      cards.forEach((cardId, index) => {
+        const nextCardId = `#card-${index + 2}`;
+
+        gsap.to(cardId, {
+          scrollTrigger: {
+            trigger: nextCardId,
+            start: "top 80%", // When next card enters viewport
+            end: "top 120px", // When next card hits its sticky position
+            scrub: true,
+          },
+          scale: 0.95,
+          opacity: 0.8,
+          filter: "blur(2px)",
+          ease: "none",
+        });
+      });
+    </script>
+  </body>
+</html>
